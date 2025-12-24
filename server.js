@@ -326,62 +326,63 @@ app.get('/api/admin/announcements', (req, res) => {
     });
 });
 
-// ==================== 启动服务器 ====================
-const PORT = process.env.PORT || 3001; // 改为3001避免端口冲突
-const HOST = process.env.HOST || '0.0.0.0'; // 允许外部访问
-
-const server = app.listen(PORT, HOST, () => {
-    console.log('\n' + '='.repeat(60));
-    console.log('🚀 飞机大战 API 服务器启动成功！');
-    console.log('='.repeat(60));
-    console.log(`📡 监听地址: ${HOST}:${PORT}`);
-    console.log(`\n🔗 API地址:`);
-    console.log(`   健康检查: http://localhost:${PORT}/health`);
-    console.log(`   微信登录: http://localhost:${PORT}/api/wechat/login`);
-    console.log(`   公告列表: http://localhost:${PORT}/api/announcements`);
-    
-    // 检查配置
-    if (!WECHAT_APPID || WECHAT_APPID === '你的APPID' || !WECHAT_SECRET || WECHAT_SECRET === '你的SECRET') {
-        console.log('\n⚠️  警告：微信AppID或Secret未配置！');
-        console.log('   请设置环境变量：');
-        console.log('   export WECHAT_APPID=你的APPID');
-        console.log('   export WECHAT_SECRET=你的SECRET');
-        console.log('   或者在代码中直接配置');
-    } else {
-        console.log(`\n✅ 微信配置已加载`);
-    }
-    
-    console.log('\n💡 提示:');
-    console.log('   1. 确保域名 www.xinguolv.top 已指向此服务器');
-    console.log('   2. 确保已配置HTTPS（SSL证书）');
-    console.log('   3. 确保防火墙已允许端口 ' + PORT);
-    console.log('   4. 生产环境建议使用PM2管理进程');
-    console.log('='.repeat(60) + '\n');
-});
-
-// 错误处理
-server.on('error', (error) => {
-    if (error.code === 'EADDRINUSE') {
-        console.error(`❌ 错误: 端口 ${PORT} 已被占用`);
-        console.error(`   请使用其他端口或关闭占用该端口的程序`);
-    } else {
-        console.error('❌ 服务器启动失败:', error);
-    }
-    process.exit(1);
-});
-
-// 优雅关闭
-process.on('SIGTERM', () => {
-    console.log('\n收到 SIGTERM 信号，正在关闭服务器...');
-    server.close(() => {
-        console.log('服务器已关闭');
-        process.exit(0);
-    });
-});
-
 // ==================== Vercel 部署支持 ====================
 // Vercel 环境：导出 app（作为 serverless function）
-// 本地环境：已在上面的代码中启动服务器
-if (process.env.VERCEL || !process.env.PORT) {
+// 本地环境：启动 HTTP 服务器
+if (process.env.VERCEL) {
+    // Vercel serverless function: 只导出 app
     module.exports = app;
+} else {
+    // 本地开发：启动 HTTP 服务器
+    const PORT = process.env.PORT || 3001;
+    const HOST = process.env.HOST || '0.0.0.0';
+
+    const server = app.listen(PORT, HOST, () => {
+        console.log('\n' + '='.repeat(60));
+        console.log('🚀 飞机大战 API 服务器启动成功！');
+        console.log('='.repeat(60));
+        console.log(`📡 监听地址: ${HOST}:${PORT}`);
+        console.log(`\n🔗 API地址:`);
+        console.log(`   健康检查: http://localhost:${PORT}/health`);
+        console.log(`   微信登录: http://localhost:${PORT}/api/wechat/login`);
+        console.log(`   公告列表: http://localhost:${PORT}/api/announcements`);
+        
+        // 检查配置
+        if (!WECHAT_APPID || WECHAT_APPID === '你的APPID' || !WECHAT_SECRET || WECHAT_SECRET === '你的SECRET') {
+            console.log('\n⚠️  警告：微信AppID或Secret未配置！');
+            console.log('   请设置环境变量：');
+            console.log('   export WECHAT_APPID=你的APPID');
+            console.log('   export WECHAT_SECRET=你的SECRET');
+            console.log('   或者在代码中直接配置');
+        } else {
+            console.log(`\n✅ 微信配置已加载`);
+        }
+        
+        console.log('\n💡 提示:');
+        console.log('   1. 确保域名 www.xinguolv.top 已指向此服务器');
+        console.log('   2. 确保已配置HTTPS（SSL证书）');
+        console.log('   3. 确保防火墙已允许端口 ' + PORT);
+        console.log('   4. 生产环境建议使用PM2管理进程');
+        console.log('='.repeat(60) + '\n');
+    });
+
+    // 错误处理
+    server.on('error', (error) => {
+        if (error.code === 'EADDRINUSE') {
+            console.error(`❌ 错误: 端口 ${PORT} 已被占用`);
+            console.error(`   请使用其他端口或关闭占用该端口的程序`);
+        } else {
+            console.error('❌ 服务器启动失败:', error);
+        }
+        process.exit(1);
+    });
+
+    // 优雅关闭
+    process.on('SIGTERM', () => {
+        console.log('\n收到 SIGTERM 信号，正在关闭服务器...');
+        server.close(() => {
+            console.log('服务器已关闭');
+            process.exit(0);
+        });
+    });
 }
