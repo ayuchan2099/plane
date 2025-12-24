@@ -15,6 +15,15 @@ const axios = require('axios');
 
 const app = express();
 
+// 全局错误处理（必须在最前面）
+process.on('uncaughtException', (error) => {
+    console.error('未捕获的异常:', error);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('未处理的 Promise 拒绝:', reason);
+});
+
 // 配置中间件
 app.use(cors({
     origin: '*', // 生产环境建议限制为特定域名
@@ -23,10 +32,16 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// 请求日志中间件
+// 请求日志中间件（添加错误处理）
 app.use((req, res, next) => {
-    console.log(`[${new Date().toLocaleString()}] ${req.method} ${req.url} - IP: ${req.ip || req.connection.remoteAddress}`);
-    next();
+    try {
+        const ip = req.ip || (req.connection && req.connection.remoteAddress) || 'unknown';
+        console.log(`[${new Date().toLocaleString()}] ${req.method} ${req.url} - IP: ${ip}`);
+        next();
+    } catch (error) {
+        console.error('日志中间件错误:', error);
+        next(error);
+    }
 });
 
 // ⚠️ 重要：配置你的微信小游戏 AppID 和 AppSecret
@@ -323,6 +338,26 @@ app.get('/api/admin/announcements', (req, res) => {
         success: true,
         announcements: announcements,
         total: announcements.length
+    });
+});
+
+// ==================== 错误处理中间件 ====================
+// 404 处理
+app.use((req, res) => {
+    res.status(404).json({
+        success: false,
+        error: '接口不存在',
+        path: req.url
+    });
+});
+
+// 全局错误处理
+app.use((err, req, res, next) => {
+    console.error('服务器错误:', err);
+    res.status(err.status || 500).json({
+        success: false,
+        error: err.message || '服务器内部错误',
+        ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
     });
 });
 
